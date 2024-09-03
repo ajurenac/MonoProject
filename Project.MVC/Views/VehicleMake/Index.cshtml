@@ -1,0 +1,63 @@
+﻿@model Project.MVC.ViewModels.VehicleMakeViewModel
+
+@{
+    ViewData["Title"] = "Vehicle Makes";
+}
+
+<h1>Vehicle Makes</h1>
+
+<form asp-controller="VehicleMake" asp-action="Index" method="get">
+    <p>
+        Search by name: <input type="text" name="SearchString" value="@Model.SearchString" />
+        <input type="submit" value="Search" />
+    </p>
+    <p>
+        <a asp-action="Create">Create New</a>
+    </p>
+</form>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                <a asp-action="Index" asp-route-sortOrder="@Model.NameSort" asp-route-currentFilter="@Model.CurrentFilter">
+                    Vehicle Make
+                </a>
+            </th>
+            <th>
+                <a asp-action="Index" asp-route-sortOrder="@Model.AbrvSort" asp-route-currentFilter="@Model.CurrentFilter">
+                    Abbreviation
+                </a>
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Makes)
+        {
+            <tr>
+                <td>@Html.DisplayFor(modelItem => item.Name)</td>
+                <td>@Html.DisplayFor(modelItem => item.Abrv)</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div>
+    Page @Model.Makes.PageIndex of @Model.Makes.TotalPages
+
+    @if (Model.Makes.HasPreviousPage)
+    {
+        <a asp-action="Index" asp-route-pageIndex="@(Model.Makes.PageIndex - 1)" asp-route-sortOrder="@Model.CurrentSort" asp-route-currentFilter="@Model.CurrentFilter">Previous</a>
+    }
+
+    @if (Model.Makes.HasNextPage)
+    {
+        <a asp-action="Index" asp-route-pageIndex="@(Model.Makes.PageIndex + 1)" asp-route-sortOrder="@Model.CurrentSort" asp-route-currentFilter="@Model.CurrentFilter">Next</a>
+    }
+</div>

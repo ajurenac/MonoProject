@@ -1,0 +1,18 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using Project.MVC.Data;
+
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+@if (SignInManager.IsSignedIn(User) && await UserManager.IsInRoleAsync(UserManager.GetUserAsync(User).Result, "admin"))
+{
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle text-dark" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Admin</a>
+        <div class="dropdown-menu" style="">
+
+            <a class="dropdown-item" asp-controller="VehicleMake" asp-action="Index">Make</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" asp-controller="VehicleModel" asp-action="Index">Model</a>
+        </div>
+    </li>
+}
