@@ -28,7 +28,7 @@ namespace Project.MVC.Controllers
         public async Task<IActionResult> Index(string sortOrder, string currentFilter, string searchString, int pageIndex = 1, int pageSize = 10)
         {
             ViewData["CurrentSort"] = sortOrder;
-            ViewData["NameSort"] = String.IsNullOrEmpty(sortOrder) ? "name_desc" : "name";
+            ViewData["NameSort"] = String.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
             ViewData["AbrvSort"] = sortOrder == "abrv" ? "abrv_desc" : "abrv";
 
             if (searchString != null)

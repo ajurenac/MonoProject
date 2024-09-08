@@ -1,6 +1,8 @@
-﻿namespace Project.Service.Models
+﻿using Project.Service.Models;
+
+namespace Project.API.DTOs
 {
-    public class VehicleModel
+    public class VehicleModelDto
     {
         public int Id { get; set; }
         public int MakeId { get; set; }
