@@ -1,10 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 using Project.MVC.ViewModels;
-using Project.Service.Data;
 using Project.Service.Models;
 using Project.Service.Services.Interfaces;
 
@@ -13,13 +10,11 @@ namespace Project.MVC.Controllers
     [Authorize(Roles = "Admin")]
     public class VehicleMakeController : Controller
     {
-        private readonly VehicleDbContext _context;
         private readonly IVehicleService _vehicleService;
         private readonly IMapper _mapper;
 
-        public VehicleMakeController(VehicleDbContext context, IVehicleService vehicleService, IMapper mapper)
+        public VehicleMakeController(IVehicleService vehicleService, IMapper mapper)
         {
-            _context = context;
             _vehicleService = vehicleService;
             _mapper = mapper;
         }
@@ -45,16 +40,17 @@ namespace Project.MVC.Controllers
             var makes = await _vehicleService.GetMakesAsync(sortOrder, searchString, pageIndex, pageSize);
             var count = await _vehicleService.GetMakeCountAsync(searchString);
 
+            var mappedMakes = _mapper.Map<IEnumerable<VehicleMakeViewModel>>(makes).ToList();
+
             var viewModel = new VehicleMakeViewModel
             {
-                Makes = new PaginatedList<VehicleMake>(makes.ToList(), count, pageIndex, pageSize),
+                Makes = new PaginatedList<VehicleMakeViewModel>(mappedMakes, count, pageIndex, pageSize),
                 CurrentSort = sortOrder,
                 NameSort = ViewData["NameSort"].ToString(),
                 AbrvSort = ViewData["AbrvSort"].ToString(),
                 CurrentFilter = searchString,
                 SearchString = searchString
             };
-
             return View(viewModel);
         }
 
@@ -66,18 +62,13 @@ namespace Project.MVC.Controllers
                 return NotFound();
             }
 
-            var vehicleMake = await _context.VehicleMakes
-                .FirstOrDefaultAsync(m => m.Id == id);
-
-            if (vehicleMake == null)
+            var make = await _vehicleService.GetMakeByIdAsync(id.Value);
+            if (make == null)
             {
                 return NotFound();
             }
 
-            var viewModel = new VehicleMakeViewModel
-            {
-                VehicleMake = vehicleMake
-            };
+            var viewModel = _mapper.Map<VehicleMakeViewModel>(make);
 
             return View(viewModel);
         }
@@ -100,12 +91,12 @@ namespace Project.MVC.Controllers
             ModelState.Remove("CurrentFilter");
             ModelState.Remove("SearchString");
 
-            var vehicleMake = viewModel.VehicleMake;
-
-            if (vehicleMake != null && ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                _context.Add(vehicleMake);
-                await _context.SaveChangesAsync();
+                var make = _mapper.Map<VehicleMake>(viewModel);
+
+                await _vehicleService.AddMakeAsync(make);
+
                 return RedirectToAction(nameof(Index));
             }
             return View(viewModel);
@@ -119,16 +110,13 @@ namespace Project.MVC.Controllers
                 return NotFound();
             }
 
-            var vehicleMake = await _context.VehicleMakes.FindAsync(id);
-            if (vehicleMake == null)
+            var make = await _vehicleService.GetMakeByIdAsync(id.Value);
+            if (make == null)
             {
                 return NotFound();
             }
 
-            var viewModel = new VehicleMakeViewModel
-            {
-                VehicleMake = vehicleMake
-            };
+            var viewModel = _mapper.Map<VehicleMakeViewModel>(make);
 
             return View(viewModel);
         }
@@ -145,19 +133,19 @@ namespace Project.MVC.Controllers
             ModelState.Remove("CurrentFilter");
             ModelState.Remove("SearchString");
 
-            var vehicleMake = viewModel.VehicleMake;
-            if (vehicleMake == null || id != vehicleMake.Id)
+            if (id != viewModel.Id)
             {
-                return NotFound(); 
+                return NotFound();
             }
 
             if (ModelState.IsValid)
             {
-                _context.Update(vehicleMake);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index)); 
-            }
+                var make = _mapper.Map<VehicleMake>(viewModel);
 
+                await _vehicleService.UpdateMakeAsync(make);
+
+                return RedirectToAction(nameof(Index));
+            }
             return View(viewModel);
         }
 
@@ -169,18 +157,13 @@ namespace Project.MVC.Controllers
                 return NotFound();
             }
 
-            var vehicleMake = await _context.VehicleMakes
-                .FirstOrDefaultAsync(m => m.Id == id);
-
-            if (vehicleMake == null)
+            var make = await _vehicleService.GetMakeByIdAsync(id.Value);
+            if (make == null)
             {
                 return NotFound();
             }
 
-            var viewModel = new VehicleMakeViewModel
-            {
-                VehicleMake = vehicleMake
-            };
+            var viewModel = _mapper.Map<VehicleMakeViewModel>(make);
 
             return View(viewModel);
         }
@@ -190,18 +173,13 @@ namespace Project.MVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var vehicleMake = await _context.VehicleMakes.FindAsync(id);
-            if (vehicleMake != null)
-            {
-                _context.VehicleMakes.Remove(vehicleMake);
-            }
-            await _context.SaveChangesAsync();
+            await _vehicleService.DeleteMakeAsync(id);
             return RedirectToAction(nameof(Index));
         }
 
         private bool VehicleMakeExists(int id)
         {
-            return _context.VehicleMakes.Any(e => e.Id == id);
+            return _vehicleService.GetMakeByIdAsync(id) != null;
         }
     }
 }

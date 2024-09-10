@@ -12,22 +12,25 @@
     <div class="col-md-4">
         <form asp-action="Edit">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="VehicleModel.Id" />
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="Id" />
             
             <div class="form-group">
-                <label asp-for="VehicleModel.MakeId" class="control-label"></label>
-                <select asp-for="VehicleModel.MakeId" class="form-control" asp-items="ViewBag.MakeId"></select>
-                <span asp-validation-for="VehicleModel.MakeId" class="text-danger"></span>
+                <label asp-for="DropDownMakeId" class="control-label">Vehicle Make</label>
+                <select asp-for="DropDownMakeId" class="form-control" asp-items="Model.Makes">
+                    <option value="">-- Select Make --</option>
+                </select>
+                <span asp-validation-for="DropDownMakeId" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="VehicleModel.Name" class="control-label"></label>
-                <input asp-for="VehicleModel.Name" class="form-control" />
-                <span asp-validation-for="VehicleModel.Name" class="text-danger"></span>
+                <label asp-for="Name" class="control-label">Model Name</label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="VehicleModel.Abrv" class="control-label"></label>
-                <input asp-for="VehicleModel.Abrv" class="form-control" />
-                <span asp-validation-for="VehicleModel.Abrv" class="text-danger"></span>
+                <label asp-for="Abrv" class="control-label">Model Abbreviation</label>
+                <input asp-for="Abrv" class="form-control" />
+                <span asp-validation-for="Abrv" class="text-danger"></span>
             </div>
 
             <div class="form-group">

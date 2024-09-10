@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Project.MVC.Data;
+using Project.MVC.Mapping;
 using Project.Service.Data;
-using Project.Service.Mappings;
 using Project.Service.Repositories.Implementations;
 using Project.Service.Repositories.Interfaces;
 using Project.Service.Services.Implementations;

@@ -2,9 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 using Project.MVC.ViewModels;
-using Project.Service.Data;
 using Project.Service.Models;
 using Project.Service.Services.Interfaces;
 
@@ -13,13 +11,11 @@ namespace Project.MVC.Controllers
     [Authorize(Roles = "Admin")]
     public class VehicleModelController : Controller
     {
-        private readonly VehicleDbContext _context;
         private readonly IVehicleService _vehicleService;
         private readonly IMapper _mapper;
 
-        public VehicleModelController(VehicleDbContext context, IVehicleService vehicleService, IMapper mapper)
+        public VehicleModelController(IVehicleService vehicleService, IMapper mapper)
         {
-            _context = context;
             _vehicleService = vehicleService;
             _mapper = mapper;
         }
@@ -46,9 +42,11 @@ namespace Project.MVC.Controllers
             var models = await _vehicleService.GetModelsAsync(sortOrder, searchString, pageIndex, pageSize);
             var count = await _vehicleService.GetModelCountAsync(searchString);
 
+            var mappedMakes = _mapper.Map<IEnumerable<VehicleModelViewModel>>(models).ToList();
+
             var viewModel = new VehicleModelViewModel
             {
-                Models = new PaginatedList<VehicleModel>(models.ToList(), count, pageIndex, pageSize),
+                Models = new PaginatedList<VehicleModelViewModel>(mappedMakes, count, pageIndex, pageSize),
                 CurrentSort = sortOrder,
                 NameSort = ViewData["NameSort"].ToString(),
                 AbrvSort = ViewData["AbrvSort"].ToString(),
@@ -56,7 +54,6 @@ namespace Project.MVC.Controllers
                 CurrentFilter = searchString,
                 SearchString = searchString
             };
-
             return View(viewModel);
         }
 
@@ -68,29 +65,30 @@ namespace Project.MVC.Controllers
                 return NotFound();
             }
 
-            var vehicleModel = await _context.VehicleModels
-                .Include(v => v.Make)
-                .FirstOrDefaultAsync(m => m.Id == id);
-
-            if (vehicleModel == null)
+            var model = await _vehicleService.GetModelByIdAsync(id.Value);
+            if (model == null)
             {
                 return NotFound();
             }
 
-            var viewModel = new VehicleModelViewModel
-            {
-                VehicleModel = vehicleModel
-            };
+            var viewModel = _mapper.Map<VehicleModelViewModel>(model);
 
             return View(viewModel);
         }
 
         // GET: VehicleModel/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
+            var makes = await _vehicleService.GetMakesAsync("Name", null, 1, int.MaxValue);
+            var makeSelectListItems = makes.Select(m => new SelectListItem
+            {
+                Value = m.Id.ToString(),
+                Text = m.Name
+            }).ToList();
+
             var viewModel = new VehicleModelViewModel
             {
-                Makes = _context.VehicleMakes.ToList()
+                Makes = makeSelectListItems
             };
             return View(viewModel);
         }
@@ -114,15 +112,26 @@ namespace Project.MVC.Controllers
             ModelState.Remove("Make");
             ModelState.Remove("VehicleModel");
 
-            var vehicleModel = viewModel.VehicleModel;
 
-            if (vehicleModel != null && ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                viewModel.VehicleModel.MakeId = viewModel.DropDownMakeId;
-                _context.Add(viewModel.VehicleModel);
-                await _context.SaveChangesAsync();
+                viewModel.MakeId = viewModel.DropDownMakeId;
+
+                var model = _mapper.Map<VehicleModel>(viewModel);
+                model.MakeId = viewModel.MakeId;
+
+                await _vehicleService.AddModelAsync(model);
                 return RedirectToAction(nameof(Index));
             }
+
+            var makes = await _vehicleService.GetMakesAsync("Name", null, 1, int.MaxValue);
+
+            viewModel.Makes = makes.Select(m => new SelectListItem
+            {
+                Value = m.Id.ToString(),
+                Text = m.Name
+            }).ToList();
+
             return View(viewModel);
         }
 
@@ -134,17 +143,22 @@ namespace Project.MVC.Controllers
                 return NotFound();
             }
 
-            var vehicleModel = await _context.VehicleModels.FindAsync(id);
-            if (vehicleModel == null)
+            var model = await _vehicleService.GetModelByIdAsync(id.Value);
+            if (model == null)
             {
                 return NotFound();
             }
-            ViewData["MakeId"] = new SelectList(_context.VehicleMakes, "Id", "Abrv", vehicleModel.MakeId);
 
-            var viewModel = new VehicleModelViewModel
+            var viewModel = _mapper.Map<VehicleModelViewModel>(model);
+
+            var makes = await _vehicleService.GetMakesAsync("Name", null, 1, int.MaxValue);
+
+            viewModel.Makes = makes.Select(m => new SelectListItem
             {
-                VehicleModel = vehicleModel
-            };
+                Value = m.Id.ToString(),
+                Text = m.Name,
+                Selected = m.Id == model.MakeId
+            }).ToList();
 
             return View(viewModel);
         }
@@ -168,20 +182,21 @@ namespace Project.MVC.Controllers
             ModelState.Remove("Make");
             ModelState.Remove("VehicleModel.Make");
 
-            var vehicleModel = viewModel.VehicleModel;
-
-            if (vehicleModel == null || id != vehicleModel.Id)
+            if (id != viewModel.Id)
             {
                 return NotFound();
             }
 
             if (ModelState.IsValid)
             {
-                _context.Update(vehicleModel);
-                await _context.SaveChangesAsync();
+                viewModel.MakeId = viewModel.DropDownMakeId;
+
+                var model = _mapper.Map<VehicleModel>(viewModel);
+
+                await _vehicleService.UpdateModelAsync(model);
+
                 return RedirectToAction(nameof(Index));
             }
-
             return View(viewModel);
         }
 
@@ -193,19 +208,13 @@ namespace Project.MVC.Controllers
                 return NotFound();
             }
 
-            var vehicleModel = await _context.VehicleModels
-                .Include(v => v.Make)
-                .FirstOrDefaultAsync(m => m.Id == id);
-
-            if (vehicleModel == null)
+            var model = await _vehicleService.GetModelByIdAsync(id.Value);
+            if (model == null)
             {
                 return NotFound();
             }
 
-            var viewModel = new VehicleModelViewModel
-            {
-                VehicleModel = vehicleModel
-            };
+            var viewModel = _mapper.Map<VehicleModelViewModel>(model);
 
             return View(viewModel);
         }
@@ -215,18 +224,13 @@ namespace Project.MVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var vehicleModel = await _context.VehicleModels.FindAsync(id);
-            if (vehicleModel != null)
-            {
-                _context.VehicleModels.Remove(vehicleModel);
-            }
-            await _context.SaveChangesAsync();
+            await _vehicleService.DeleteModelAsync(id);
             return RedirectToAction(nameof(Index));
         }
 
         private bool VehicleModelExists(int id)
         {
-            return _context.VehicleModels.Any(e => e.Id == id);
+            return _vehicleService.GetModelByIdAsync(id) != null;
         }
     }
 }
